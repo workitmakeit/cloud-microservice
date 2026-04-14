@@ -24,9 +24,11 @@ export const GET = async (request: RequestWithAuth, env: Env) => {
     const query = `SELECT value FROM globalStorage WHERE user_id = ? AND app_id = ? AND key = ?`;
     const result = await env.CLOUD_DB.prepare(query).bind(request.auth.sub, app_id, key).first();
 
-    return new Response(JSON.stringify(result ? result.value as string : null), {
-        headers: { "Content-Type": "application/json" }
-    });
+    if (!result) {
+        return new Response("Not found", { status: 404 });
+    }
+
+    return new Response(result.value as string, { status: 200, headers: { "Content-Type": "text/plain" } });
 }
 
 export const PUT = async (request: RequestWithAuth, env: Env) => {
