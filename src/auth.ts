@@ -44,9 +44,18 @@ type AuthError = "NO_TOKEN" | "NO_ENDOWMENTS" | "INSUFFICIENT_ENDOWMENTS";
 type AuthResult = { success: true; payload: JWTPayload & { endowments: Endowment[] } } | { success: false; error: AuthError };
 
 export const authenticate = async (request: IRequest, env: Env): Promise<AuthResult> => {
-    // get sso_token cookie
+    // get sso token from bearer auth or cookie
+    const auth_header = request.headers.get("Authorization");
     const cookie_header = request.headers.get("Cookie");
-    const sso_token = cookie_header ? parseCookie(cookie_header)["sso_token"] : null;
+
+    let sso_token: string | null = null;
+
+    if (auth_header && auth_header.startsWith("Bearer ")) {
+        sso_token = auth_header.substring(7);
+    } else if (cookie_header) {
+        const cookies = parseCookie(cookie_header);
+        sso_token = cookies["sso_token"] || null;
+    }
 
     if (!sso_token) {
         return { success: false, error: "NO_TOKEN" };
