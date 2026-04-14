@@ -35,7 +35,8 @@ export default {
                 return new Response(`Logged in as ${auth.username}`);
             })
             .get("/globalStorage/:app_id?/:key?", globalStorage.GET)
-            .put("/globalStorage/:app_id?/:key?", globalStorage.PUT);
+            .put("/globalStorage/:app_id?/:key?", globalStorage.PUT)
+            .delete("/globalStorage/:app_id?/:key?", globalStorage.DELETE);
 
         return router.fetch(request, env, ctx);
     }

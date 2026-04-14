@@ -58,3 +58,35 @@ export const PUT = async (request: RequestWithAuth, env: Env) => {
 
     return new Response(null, { status: 204 });
 }
+
+export const DELETE = async (request: RequestWithAuth, env: Env) => {
+    const {app_id, key} = request.params;
+
+    if (!app_id) {
+        return new Response("Missing app ID", { status: 400 });
+    }
+
+    // key is optional. if not specified, delete all keys for the app
+
+    if (!ALLOWED_APP_IDS.includes(app_id)) {
+        return new Response("Invalid app ID", { status: 400 });
+    }
+
+    if (!check_endowment(request.auth.endowments, "globalStorage:write")) {
+        return new Response("Unauthorised: missing globalStorage:write endowment", { status: 403 });
+    }
+
+    let query: string;
+    let params: (string | number)[];
+    if (key) {
+        query = `DELETE FROM globalStorage WHERE user_id = ? AND app_id = ? AND key = ?`;
+        params = [request.auth.sub, app_id, key];
+    } else {
+        query = `DELETE FROM globalStorage WHERE user_id = ? AND app_id = ?`;
+        params = [request.auth.sub, app_id];
+    }
+
+    await env.CLOUD_DB.prepare(query).bind(...params).run();
+
+    return new Response(null, { status: 204 });
+}
