@@ -1,18 +1,42 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { AutoRouter, cors, type IRequest } from "itty-router";
+
+import { authenticate, type RequestWithAuth } from "./auth";
+import * as globalStorage from "./globalStorage";
+
+const { preflight } = cors({
+    origin: "*", // TODO: restrict to allowed origins
+    allowMethods: "GET",
+    allowHeaders: ["Authorization", "Content-Type"]
+});
+
+const make_auth_middleware = (env: Env) => async (request: IRequest) => {
+    const auth_result = await authenticate(request, env);
+    if (!auth_result.success) {
+        if (auth_result.error === "NO_TOKEN") {
+            return Response.redirect("https://auth.ollieg.codes/login?from=" + encodeURIComponent(request.url), 302);
+        }
+
+        return new Response(`Unauthorised: ${auth_result.error}`, { status: 401 });
+    }
+
+    (request as RequestWithAuth).auth = auth_result.payload;
+    return null;
+}
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return new Response("Hello World!");
-	},
+    async fetch(request, env, ctx): Promise<Response> {
+        const router = AutoRouter({
+            before: [preflight, make_auth_middleware(env)]
+        });
+
+        router
+            .get("/", (request: RequestWithAuth) => {
+                const auth = request.auth;
+                return new Response(`Logged in as ${auth.username}`);
+            })
+            .get("/globalStorage/:app_id?/:key?", globalStorage.GET)
+            .put("/globalStorage/:app_id?/:key?", globalStorage.PUT);
+
+        return router.fetch(request, env, ctx);
+    }
 } satisfies ExportedHandler<Env>;
