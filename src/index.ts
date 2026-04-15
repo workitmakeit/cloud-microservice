@@ -34,6 +34,10 @@ export default {
                 const auth = request.auth;
                 return new Response(`Logged in as ${auth.username}`);
             })
+            .get("/endowments", (request: RequestWithAuth) => {
+                const auth = request.auth;
+                return new Response(JSON.stringify(auth.endowments), { headers: { "Content-Type": "application/json" } });
+            })
             .get("/globalStorage/:app_id?/:key?", globalStorage.GET)
             .put("/globalStorage/:app_id?/:key?", globalStorage.PUT)
             .delete("/globalStorage/:app_id?/:key?", globalStorage.DELETE);
