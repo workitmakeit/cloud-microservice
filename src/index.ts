@@ -1,6 +1,6 @@
 import { AutoRouter, cors, type IRequest } from "itty-router";
 
-import { authenticate, type RequestWithAuth } from "./auth";
+import { authenticate, AVAILABLE_ENDOWMENTS, check_endowment, Endowment, type RequestWithAuth } from './auth';
 import * as globalStorage from "./globalStorage";
 
 const { preflight } = cors({
@@ -37,6 +37,16 @@ export default {
             .get("/endowments", (request: RequestWithAuth) => {
                 const auth = request.auth;
                 return new Response(JSON.stringify(auth.endowments), { headers: { "Content-Type": "application/json" } });
+            })
+            .get("/endowment/:endowment", (request: RequestWithAuth) => {
+                const auth = request.auth;
+                const { endowment } = request.params;
+
+                if (!AVAILABLE_ENDOWMENTS.includes(endowment as Endowment)) {
+                    return new Response("Invalid endowment", { status: 400 });
+                }
+
+                return new Response(JSON.stringify(check_endowment(auth.endowments, endowment as Endowment)), { headers: { "Content-Type": "application/json" } })
             })
             .get("/globalStorage/:app_id?/:key?", globalStorage.GET)
             .put("/globalStorage/:app_id?/:key?", globalStorage.PUT)

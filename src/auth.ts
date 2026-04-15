@@ -9,12 +9,15 @@ interface JWTPayload {
     avatar?: string;
 }
 
-export type Endowment =
-    "*" |
-        "auth" |
-        "globalStorage:*" |
-            "globalStorage:read" |
-            "globalStorage:write";
+export const AVAILABLE_ENDOWMENTS = [
+    "*",
+        "auth",
+        "globalStorage:*",
+            "globalStorage:read",
+            "globalStorage:write"
+] as const;
+
+export type Endowment = typeof AVAILABLE_ENDOWMENTS[number];
 
 export const check_endowment = (endowments: Endowment[], required: Endowment) => {
     // if they have the global wildcard, no questions asked
