@@ -5,7 +5,7 @@ import * as globalStorage from "./globalStorage";
 
 const { preflight, corsify } = cors({
     origin: "*", // TODO: restrict to allowed origins
-    allowMethods: "GET",
+    allowMethods: ["GET", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Authorization", "Content-Type"]
 });
 
