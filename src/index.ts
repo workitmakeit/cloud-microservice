@@ -27,7 +27,7 @@ export default {
     async fetch(request, env, ctx): Promise<Response> {
         const router = AutoRouter({
             before: [preflight, make_auth_middleware(env)],
-            after: [corsify]
+            finally: [corsify]
         });
 
         router
