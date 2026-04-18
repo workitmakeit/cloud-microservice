@@ -3,7 +3,7 @@ import { AutoRouter, cors, type IRequest } from "itty-router";
 import { authenticate, AVAILABLE_ENDOWMENTS, check_endowment, Endowment, type RequestWithAuth } from './auth';
 import * as globalStorage from "./globalStorage";
 
-const { preflight } = cors({
+const { preflight, corsify } = cors({
     origin: "*", // TODO: restrict to allowed origins
     allowMethods: "GET",
     allowHeaders: ["Authorization", "Content-Type"]
@@ -26,14 +26,11 @@ const make_auth_middleware = (env: Env) => async (request: IRequest) => {
 export default {
     async fetch(request, env, ctx): Promise<Response> {
         const router = AutoRouter({
-            before: [preflight, make_auth_middleware(env)]
+            before: [preflight, make_auth_middleware(env)],
+            after: [corsify]
         });
 
         router
-            .get("/", (request: RequestWithAuth) => {
-                const auth = request.auth;
-                return new Response(`Logged in as ${auth.username}`);
-            })
             .get("/endowments", (request: RequestWithAuth) => {
                 const auth = request.auth;
                 return new Response(JSON.stringify(auth.endowments), { headers: { "Content-Type": "application/json" } });

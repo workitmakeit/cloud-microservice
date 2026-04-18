@@ -1,6 +1,8 @@
 import { check_endowment, RequestWithAuth } from "./auth";
 import { ALLOWED_APP_IDS } from "./apps";
 
+// TODO: restrict to origins associated with the app ID
+
 export const GET = async (request: RequestWithAuth, env: Env) => {
     const {app_id, key} = request.params;
 
