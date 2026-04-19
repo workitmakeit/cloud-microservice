@@ -18,6 +18,12 @@ const make_auth_middleware = (env: Env) => async (request: IRequest) => {
             return Response.redirect("https://auth.ollieg.codes/login?from=" + encodeURIComponent(request.url), 302);
         }
 
+        // if they are checking their endowments but have none, then return an empty array instead of an error so the frontend can handle it gracefully
+        if (auth_result.error === "NO_ENDOWMENTS" && request.url.includes("/endowment")) {
+            (request as RequestWithAuth).auth = { sub: "", username: "", provider: "", endowments: [] };
+            return null;
+        }
+
         return new Response(`Unauthorised: ${auth_result.error}`, { status: 401 });
     }
 
