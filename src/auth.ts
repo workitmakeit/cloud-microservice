@@ -7,6 +7,7 @@ interface JWTPayload {
     discriminator?: string;
     email?: string;
     avatar?: string;
+    provider: string;
 }
 
 export const AVAILABLE_ENDOWMENTS = [

@@ -2,6 +2,8 @@ import { AutoRouter, cors, type IRequest } from "itty-router";
 
 import { authenticate, AVAILABLE_ENDOWMENTS, check_endowment, Endowment, type RequestWithAuth } from './auth';
 import * as globalStorage from "./globalStorage";
+import { goodbye_frontend } from './goodbye';
+import { delete_me } from './delete_me';
 
 const { preflight, corsify } = cors({
     origin: "*", // TODO: restrict to allowed origins
@@ -47,7 +49,9 @@ export default {
             })
             .get("/globalStorage/:app_id?/:key?", globalStorage.GET)
             .put("/globalStorage/:app_id?/:key?", globalStorage.PUT)
-            .delete("/globalStorage/:app_id?/:key?", globalStorage.DELETE);
+            .delete("/globalStorage/:app_id?/:key?", globalStorage.DELETE)
+            .delete("/me", delete_me)
+            .get("/goodbye", goodbye_frontend);
 
         return router.fetch(request, env, ctx);
     }
