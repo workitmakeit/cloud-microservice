@@ -23,7 +23,7 @@ export class GlobalStorage {
 
         const headers = {
             ...options.headers,
-            "Accept": "application/json"
+            "Accept": "text/plain"
         };
 
         if (this.token) {
@@ -54,7 +54,7 @@ export class GlobalStorage {
             return null;
         }
 
-        return await res.json();
+        return await res.text();
     }
 
     async setItem(key, value) {
