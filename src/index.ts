@@ -1,9 +1,12 @@
 import { AutoRouter, cors, type IRequest } from "itty-router";
 
-import { authenticate, AVAILABLE_ENDOWMENTS, check_endowment, Endowment, type RequestWithAuth } from './auth';
+import { authenticate, AVAILABLE_ENDOWMENTS, check_endowment, Endowment, type RequestWithAuth } from "./auth";
 import * as globalStorage from "./globalStorage";
-import { goodbye_frontend } from './goodbye';
-import { delete_me } from './delete_me';
+import { goodbye_frontend } from "./goodbye";
+import { delete_me } from "./delete_me";
+
+import { get_app, get_public_app_info, register_app_routing } from "./app_reg";
+import {register_apps} from "./apps";
 
 const { preflight, corsify } = cors({
     origin: "*", // TODO: restrict to allowed origins
@@ -33,12 +36,24 @@ const make_auth_middleware = (env: Env) => async (request: IRequest) => {
 
 export default {
     async fetch(request, env, ctx): Promise<Response> {
+        register_apps();
+
         const router = AutoRouter({
             before: [preflight, make_auth_middleware(env)],
             finally: [corsify]
         });
 
         router
+            .get("/app/:app_id", (request: RequestWithAuth) => {
+                const { app_id } = request.params;
+
+                const app = get_app(app_id);
+                if (!app) {
+                    return new Response("App not found", { status: 404 });
+                }
+
+                return new Response(JSON.stringify(get_public_app_info(app)), { headers: { "Content-Type": "application/json" } });
+            })
             .get("/endowments", (request: RequestWithAuth) => {
                 const auth = request.auth;
                 return new Response(JSON.stringify(auth.endowments), { headers: { "Content-Type": "application/json" } });
@@ -58,6 +73,8 @@ export default {
             .delete("/globalStorage/:app_id?/:key?", globalStorage.DELETE)
             .delete("/me", delete_me)
             .get("/goodbye", goodbye_frontend);
+
+        register_app_routing(router);
 
         return router.fetch(request, env, ctx);
     }

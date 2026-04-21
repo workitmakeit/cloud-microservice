@@ -1,5 +1,5 @@
 import { check_endowment, RequestWithAuth } from "./auth";
-import { ALLOWED_APP_IDS } from "./apps";
+import { get_app } from "./app_reg";
 
 // TODO: restrict to origins associated with the app ID
 
@@ -14,12 +14,29 @@ export const GET = async (request: RequestWithAuth, env: Env) => {
         return new Response("Missing key query parameter", { status: 400 });
     }
 
-    if (!ALLOWED_APP_IDS.includes(app_id)) {
+    const app = get_app(app_id);
+    if (!app) {
         return new Response("Invalid app ID", { status: 400 });
     }
 
     if (!check_endowment(request.auth.endowments, "globalStorage:read")) {
-        return new Response("Unauthorised: missing globalStorage endowment", { status: 403 });
+        return new Response("Unauthorised: missing globalStorage:read endowment", { status: 403 });
+    }
+
+    if (app.extra_endowments?.all) {
+        for (const endowment of app.extra_endowments.all) {
+            if (!check_endowment(request.auth.endowments, endowment)) {
+                return new Response(`Unauthorised: missing ${endowment} endowment`, { status: 403 });
+            }
+        }
+    }
+
+    if (app.extra_endowments?.globalStorage?.read) {
+        for (const endowment of app.extra_endowments.globalStorage.read) {
+            if (!check_endowment(request.auth.endowments, endowment)) {
+                return new Response(`Unauthorised: missing ${endowment} endowment`, { status: 403 });
+            }
+        }
     }
 
     // access the database
@@ -45,12 +62,37 @@ export const PUT = async (request: RequestWithAuth, env: Env) => {
         return new Response("Missing key query parameter", { status: 400 });
     }
 
-    if (!ALLOWED_APP_IDS.includes(app_id)) {
+    const app = get_app(app_id);
+    if (!app) {
         return new Response("Invalid app ID", { status: 400 });
     }
 
     if (!check_endowment(request.auth.endowments, "globalStorage:write")) {
         return new Response("Unauthorised: missing globalStorage:write endowment", { status: 403 });
+    }
+
+    if (app.extra_endowments?.all) {
+        for (const endowment of app.extra_endowments.all) {
+            if (!check_endowment(request.auth.endowments, endowment)) {
+                return new Response(`Unauthorised: missing ${endowment} endowment`, { status: 403 });
+            }
+        }
+    }
+
+    if (app.extra_endowments?.globalStorage?.write) {
+        for (const endowment of app.extra_endowments.globalStorage.write) {
+            if (!check_endowment(request.auth.endowments, endowment)) {
+                return new Response(`Unauthorised: missing ${endowment} endowment`, { status: 403 });
+            }
+        }
+    }
+
+    const write_hook = app.hooks?.globalStorage?.write;
+    if (write_hook) {
+        const error = await write_hook(request.auth.sub, key, value);
+        if (error) {
+            return new Response(error, { status: 400 });
+        }
     }
 
     // upsert into the database
@@ -72,12 +114,37 @@ export const DELETE = async (request: RequestWithAuth, env: Env) => {
 
     // key is optional. if not specified, delete all keys for the app
 
-    if (!ALLOWED_APP_IDS.includes(app_id)) {
+    const app = get_app(app_id);
+    if (!app) {
         return new Response("Invalid app ID", { status: 400 });
     }
 
     if (!check_endowment(request.auth.endowments, "globalStorage:write")) {
         return new Response("Unauthorised: missing globalStorage:write endowment", { status: 403 });
+    }
+
+    if (app.extra_endowments?.all) {
+        for (const endowment of app.extra_endowments.all) {
+            if (!check_endowment(request.auth.endowments, endowment)) {
+                return new Response(`Unauthorised: missing ${endowment} endowment`, { status: 403 });
+            }
+        }
+    }
+
+    if (app.extra_endowments?.globalStorage?.delete) {
+        for (const endowment of app.extra_endowments.globalStorage.delete) {
+            if (!check_endowment(request.auth.endowments, endowment)) {
+                return new Response(`Unauthorised: missing ${endowment} endowment`, { status: 403 });
+            }
+        }
+    }
+
+    const delete_hook = app.hooks?.globalStorage?.delete;
+    if (delete_hook) {
+        const error = await delete_hook(request.auth.sub, key || null);
+        if (error) {
+            return new Response(error, { status: 400 });
+        }
     }
 
     let query: string;
