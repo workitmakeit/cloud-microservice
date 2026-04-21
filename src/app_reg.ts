@@ -6,24 +6,27 @@ import type { AutoRouterType, IRequest } from "itty-router";
  * @param user_id The ID of the user performing the write (JWT sub, prefixed with provider, e.g. discord:123456789)
  * @param key The key being written to
  * @param value The value being written
+ * @param env The environment object
  * @returns If the hook returns an empty string, the write will proceed as normal. If it returns a non-empty string, the write will be blocked and the client will receive an error with the returned string as the message.
  */
-export type GlobalStorageWriteHook = (user_id: string, key: string, value: string) => Promise<string>;
+export type GlobalStorageWriteHook = (user_id: string, key: string, value: string, env: Env) => Promise<string>;
 
 /**
  * A hook that runs when globalStorage delete is invoked for this app.
  * @param user_id The ID of the user performing the write (JWT sub, prefixed with provider, e.g. discord:123456789)
  * @param key The key being deleted, or null if all keys for the app are being deleted
+ * @param env The environment object
  * @returns If the hook returns an empty string, the delete will proceed as normal. If it returns a non-empty string, the delete will be blocked and the client will receive an error with the returned string as the message.
  */
-export type GlobalStorageDeleteHook = (user_id: string, key: string | null) => Promise<string>;
+export type GlobalStorageDeleteHook = (user_id: string, key: string | null, env: Env) => Promise<string>;
 
 /**
  * A hook that runs when the user deletes their account. Apps must clean up all of their data to comply with protection regulations.
  * This hook is run BEFORE endowments and globalStorage are cleared for the user.
  * @param user_id The ID of the user deleting their account (JWT sub, prefixed with provider, e.g. discord:123456789)
+ * @param env The environment object
  */
-export type DeleteMeHook = (user_id: string) => Promise<void>;
+export type DeleteMeHook = (user_id: string, env: Env) => Promise<void>;
 
 type HTTPMethod = "get" | "post" | "put" | "delete" | "patch";
 

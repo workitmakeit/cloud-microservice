@@ -89,7 +89,7 @@ export const PUT = async (request: RequestWithAuth, env: Env) => {
 
     const write_hook = app.hooks?.globalStorage?.write;
     if (write_hook) {
-        const error = await write_hook(request.auth.sub, key, value);
+        const error = await write_hook(request.auth.sub, key, value, env);
         if (error) {
             return new Response(error, { status: 400 });
         }
@@ -141,7 +141,7 @@ export const DELETE = async (request: RequestWithAuth, env: Env) => {
 
     const delete_hook = app.hooks?.globalStorage?.delete;
     if (delete_hook) {
-        const error = await delete_hook(request.auth.sub, key || null);
+        const error = await delete_hook(request.auth.sub, key || null, env);
         if (error) {
             return new Response(error, { status: 400 });
         }
@@ -161,3 +161,5 @@ export const DELETE = async (request: RequestWithAuth, env: Env) => {
 
     return new Response(null, { status: 204 });
 }
+
+// TODO: run hooks in a transaction just in case
