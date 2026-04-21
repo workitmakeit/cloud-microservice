@@ -49,8 +49,7 @@ export interface App {
     /** Optional hooks that run when certain actions are performed. */
     hooks?: {
         /** Any app that stores data outside of globalStorage must implement this! */
-        delete_me?: () => Promise<void>;
-
+        delete_me?: DeleteMeHook;
 
         globalStorage?: {
             write?: GlobalStorageWriteHook;

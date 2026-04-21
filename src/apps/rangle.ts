@@ -99,6 +99,11 @@ export default {
 
                 return "";
             }
+        },
+        delete_me: async (user_id, env) => {
+            // delete all entries for this user in the leaderboard and updated tables
+            await env.CLOUD_DB.prepare(`DELETE FROM rangle_leaderboard WHERE user_id = ?`).bind(user_id).run();
+            await env.CLOUD_DB.prepare(`DELETE FROM rangle_updated WHERE user_id = ?`).bind(user_id).run();
         }
     },
     routes: {
