@@ -89,6 +89,8 @@ export const PUT = async (request: RequestWithAuth, env: Env) => {
 
     const write_hook = app.hooks?.globalStorage?.write;
     if (write_hook) {
+        console.log(`Running globalStorage write hook for app ${app.id} with key ${key} and value ${value}`);
+
         const error = await write_hook(request.auth.sub, key, value, env);
         if (error) {
             return new Response(error, { status: 400 });
@@ -141,6 +143,8 @@ export const DELETE = async (request: RequestWithAuth, env: Env) => {
 
     const delete_hook = app.hooks?.globalStorage?.delete;
     if (delete_hook) {
+        console.log(`Running globalStorage delete hook for app ${app.id} with key ${key || "ALL KEYS"}`);
+
         const error = await delete_hook(request.auth.sub, key || null, env);
         if (error) {
             return new Response(error, { status: 400 });

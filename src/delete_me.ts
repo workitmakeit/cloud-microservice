@@ -6,8 +6,10 @@ export const delete_me = async (request: RequestWithAuth, env: Env) => {
     for (const app of list_apps()) {
         const delete_me_hook = app.hooks?.delete_me;
         if (delete_me_hook) {
+            console.log(`Running delete_me hook for app ${app.id}`);
+
             try {
-                await delete_me_hook();
+                await delete_me_hook(request.auth.sub, env);
             } catch (e) {
                 console.error(`Error running delete_me hook for app ${app.id}:`, e);
             }
