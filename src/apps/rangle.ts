@@ -134,9 +134,9 @@ export default {
                     return new Response("Invalid or expired token", { status: 401 });
                 }
 
-                // next check the user belongs to the guild
+                // next check the user verifiably belongs to the guild
                 const membership = await env.CLOUD_DB.prepare(
-                    `SELECT 1 FROM rangle_guilds WHERE guild_id = ? AND user_id = ?`
+                    `SELECT 1 FROM rangle_guilds WHERE guild_id = ? AND user_id = ? AND verified = 1`
                 ).bind(guild_id, request.auth.sub).first();
 
                 if (!membership) {
@@ -205,7 +205,7 @@ export default {
                 const mini_guilds: Record<string, MiniGuild> = {};
                 for (const guild of guilds) {
                     statements.push(
-                        env.CLOUD_DB.prepare(`INSERT INTO rangle_guilds (guild_id, user_id) VALUES (?, ?)`).bind(guild.id, user_id)
+                        env.CLOUD_DB.prepare(`INSERT INTO rangle_guilds (guild_id, user_id, verified) VALUES (?, ?, 1)`).bind(guild.id, user_id)
                     );
 
                     mini_guilds[guild.id] = {
@@ -226,6 +226,21 @@ export default {
                     .sign(new TextEncoder().encode(env.JWT_SECRET));
 
                 return new Response(JSON.stringify({ token: jwt, expires_at, guilds: mini_guilds }), { headers: { "Content-Type": "application/json" } });
+            }
+        },
+        put: {
+            "/guilds/:guild_id/checkin": async (request, env) => {
+                const { guild_id } = request.params;
+
+                // check in to the guild to place them on the leaderboard, however, don't mark them as verified until confirmed by sync_guilds
+                // if it is already inserted, then do nothing, as they either already checked in, or its already verified (which shouldn't be undone!)
+                await env.CLOUD_DB.prepare(
+                    `INSERT INTO rangle_guilds (guild_id, user_id, verified)
+                     VALUES (?, ?, 0)
+                     ON CONFLICT (guild_id, user_id) DO NOTHING`
+                ).bind(guild_id, request.auth.sub).run();
+
+                return new Response(null, { status: 204 });
             }
         }
     }

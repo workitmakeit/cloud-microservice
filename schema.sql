@@ -27,6 +27,7 @@ CREATE TABLE rangle_updated (
 CREATE TABLE rangle_guilds (
     guild_id TEXT,
     user_id TEXT,
+    verified BOOLEAN NOT NULL,
 
     PRIMARY KEY (guild_id, user_id)
 );
