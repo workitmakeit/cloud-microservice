@@ -12,6 +12,12 @@ interface SaveStateDay {
     updated?: string;
 }
 
+interface MiniGuild {
+    id: string;
+    name: string;
+    icon?: string
+}
+
 export default {
     id: "rangle",
     name: "Rangle",
@@ -190,17 +196,24 @@ export default {
                     return new Response("Failed to fetch user guilds", { status: 500 });
                 }
 
-                const guilds = await guilds_response.json() as { id: string }[];
+                const guilds = await guilds_response.json() as MiniGuild[];
 
                 // update the database with the user's guilds. we can just delete all their existing guilds and reinsert
                 const statements = [
                     env.CLOUD_DB.prepare(`DELETE FROM rangle_guilds WHERE user_id = ?`).bind(user_id)
                 ];
 
+                const mini_guilds: MiniGuild[] = [];
                 for (const guild of guilds) {
                     statements.push(
                         env.CLOUD_DB.prepare(`INSERT INTO rangle_guilds (guild_id, user_id) VALUES (?, ?)`).bind(guild.id, user_id)
                     );
+
+                    mini_guilds.push({
+                        id: guild.id,
+                        name: guild.name,
+                        icon: guild.icon
+                    });
                 }
 
                 await env.CLOUD_DB.batch(statements);
@@ -214,7 +227,7 @@ export default {
                     .setExpirationTime(expires_at)
                     .sign(new TextEncoder().encode(env.JWT_SECRET));
 
-                return new Response(JSON.stringify({ token: jwt, expires_at }), { headers: { "Content-Type": "application/json" } });
+                return new Response(JSON.stringify({ token: jwt, expires_at, guilds: mini_guilds }), { headers: { "Content-Type": "application/json" } });
             }
         }
     }
