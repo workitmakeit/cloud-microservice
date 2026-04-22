@@ -13,7 +13,6 @@ interface SaveStateDay {
 }
 
 interface MiniGuild {
-    id: string;
     name: string;
     icon?: string
 }
@@ -196,24 +195,23 @@ export default {
                     return new Response("Failed to fetch user guilds", { status: 500 });
                 }
 
-                const guilds = await guilds_response.json() as MiniGuild[];
+                const guilds = await guilds_response.json() as (MiniGuild & {id: string})[];
 
                 // update the database with the user's guilds. we can just delete all their existing guilds and reinsert
                 const statements = [
                     env.CLOUD_DB.prepare(`DELETE FROM rangle_guilds WHERE user_id = ?`).bind(user_id)
                 ];
 
-                const mini_guilds: MiniGuild[] = [];
+                const mini_guilds: Record<string, MiniGuild> = {};
                 for (const guild of guilds) {
                     statements.push(
                         env.CLOUD_DB.prepare(`INSERT INTO rangle_guilds (guild_id, user_id) VALUES (?, ?)`).bind(guild.id, user_id)
                     );
 
-                    mini_guilds.push({
-                        id: guild.id,
+                    mini_guilds[guild.id] = {
                         name: guild.name,
                         icon: guild.icon
-                    });
+                    };
                 }
 
                 await env.CLOUD_DB.batch(statements);
