@@ -1,4 +1,5 @@
 import type { App } from "../app_reg";
+import { jwtVerify, SignJWT } from "jose";
 
 type StatPositionFlags = [boolean, boolean, boolean, boolean, boolean];
 
@@ -104,6 +105,7 @@ export default {
             // delete all entries for this user in the leaderboard and updated tables
             await env.CLOUD_DB.prepare(`DELETE FROM rangle_leaderboard WHERE user_id = ?`).bind(user_id).run();
             await env.CLOUD_DB.prepare(`DELETE FROM rangle_updated WHERE user_id = ?`).bind(user_id).run();
+            await env.CLOUD_DB.prepare(`DELETE FROM rangle_guilds WHERE user_id = ?`).bind(user_id).run();
         }
     },
     routes: {
@@ -111,7 +113,23 @@ export default {
             "/guilds/:guild_id/leaderboard/:date": async (request, env) => {
                 const { guild_id, date } = request.params;
 
-                // first check the user belongs to the guild
+                // first check they still have a valid jwt grant
+                const auth_header = request.headers.get("Authorization");
+                if (!auth_header || !auth_header.startsWith("Bearer ")) {
+                    return new Response("Missing or invalid Authorization header", { status: 401 });
+                }
+
+                const token = auth_header.substring(7);
+                try {
+                    const {payload} = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET));
+                    if (payload.sub !== request.auth.sub) {
+                        return new Response("Token does not belong to the authenticated user", { status: 401 });
+                    }
+                } catch (e) {
+                    return new Response("Invalid or expired token", { status: 401 });
+                }
+
+                // next check the user belongs to the guild
                 const membership = await env.CLOUD_DB.prepare(
                     `SELECT 1 FROM rangle_guilds WHERE guild_id = ? AND user_id = ?`
                 ).bind(guild_id, request.auth.sub).first();
@@ -134,6 +152,8 @@ export default {
         },
         post: {
             "/sync_guilds": async (request, env) => {
+                // TODO: store user details
+
                 const { code } = await request.json() as { code: string };
                 const user_id = request.auth.sub;
 
@@ -148,7 +168,6 @@ export default {
                         client_secret: env.RANGLE_CLIENT_SECRET,
                         code,
                         grant_type: "authorization_code",
-                        redirect_uri: "https://rangle.today/guilds/callback"
                     })
                 });
 
@@ -186,7 +205,16 @@ export default {
 
                 await env.CLOUD_DB.batch(statements);
 
-                return new Response("Synced");
+                // issue a short-lived jwt for accessing the guild for 10 minutes, to account for invalidation if they leave/get kicked from a guild
+                const expires_at = Math.floor(Date.now() / 1000) + 60 * 10; // 10 minutes from now
+                const jwt = await new SignJWT({
+                    sub: user_id,
+                })
+                    .setProtectedHeader({ alg: "HS256" })
+                    .setExpirationTime(expires_at)
+                    .sign(new TextEncoder().encode(env.JWT_SECRET));
+
+                return new Response(JSON.stringify({ token: jwt, expires_at }), { headers: { "Content-Type": "application/json" } });
             }
         }
     }

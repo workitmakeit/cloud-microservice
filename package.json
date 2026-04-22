@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "cookie": "^1.1.1",
-    "itty-router": "^5.0.23"
+    "itty-router": "^5.0.23",
+    "jose": "^6.2.2"
   }
 }

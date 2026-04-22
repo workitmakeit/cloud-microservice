@@ -1,3 +1,5 @@
 # used when accessing guilds in /rangle/sync_guilds route
 RANGLE_CLIENT_ID=
 RANGLE_CLIENT_SECRET=
+
+JWT_SECRET=
