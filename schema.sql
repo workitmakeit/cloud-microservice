@@ -23,3 +23,10 @@ CREATE TABLE rangle_updated (
 
     PRIMARY KEY (user_id)
 );
+
+CREATE TABLE rangle_guilds (
+    guild_id TEXT,
+    user_id TEXT,
+
+    PRIMARY KEY (guild_id, user_id)
+);

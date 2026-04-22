@@ -108,8 +108,85 @@ export default {
     },
     routes: {
         get: {
-            "/": () => {
-                return new Response("Hello from Rangle!", { status: 200 });
+            "/guilds/:guild_id/leaderboard/:date": async (request, env) => {
+                const { guild_id, date } = request.params;
+
+                // first check the user belongs to the guild
+                const membership = await env.CLOUD_DB.prepare(
+                    `SELECT 1 FROM rangle_guilds WHERE guild_id = ? AND user_id = ?`
+                ).bind(guild_id, request.auth.sub).first();
+
+                if (!membership) {
+                    return new Response("Not a member of this guild", { status: 403 });
+                }
+
+                // use a join to collect all users in the guild with scores on that day in order (where least attempts and most bonus correct is best)
+                const leaderboard = await env.CLOUD_DB.prepare(
+                    `SELECT rangle_leaderboard.user_id, n_attempts, hardcore, n_correct_bonus
+                     FROM rangle_leaderboard
+                     JOIN rangle_guilds ON rangle_leaderboard.user_id = rangle_guilds.user_id
+                     WHERE rangle_guilds.guild_id = ? AND date = ?
+                     ORDER BY n_attempts ASC, n_correct_bonus DESC`
+                ).bind(guild_id, date).all();
+
+                return new Response(JSON.stringify(leaderboard), { headers: { "Content-Type": "application/json" } });
+            }
+        },
+        post: {
+            "/sync_guilds": async (request, env) => {
+                const { code } = await request.json() as { code: string };
+                const user_id = request.auth.sub;
+
+                // exchange for a new access token
+                const token_response = await fetch("https://discord.com/api/oauth2/token", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: new URLSearchParams({
+                        client_id: env.RANGLE_CLIENT_ID,
+                        client_secret: env.RANGLE_CLIENT_SECRET,
+                        code,
+                        grant_type: "authorization_code",
+                        redirect_uri: "https://rangle.today/guilds/callback"
+                    })
+                });
+
+                if (!token_response.ok) {
+                    console.error("Failed to exchange code for token:", await token_response.text());
+                    return new Response("Failed to exchange code for token", { status: 500 });
+                }
+
+                const { access_token } = await token_response.json() as { access_token: string };
+
+                // use the access token to get the user's guilds
+                const guilds_response = await fetch("https://discord.com/api/users/@me/guilds", {
+                    headers: {
+                        Authorization: `Bearer ${access_token}`
+                    }
+                });
+
+                if (!guilds_response.ok) {
+                    console.error("Failed to fetch user guilds:", await guilds_response.text());
+                    return new Response("Failed to fetch user guilds", { status: 500 });
+                }
+
+                const guilds = await guilds_response.json() as { id: string }[];
+
+                // update the database with the user's guilds. we can just delete all their existing guilds and reinsert
+                const statements = [
+                    env.CLOUD_DB.prepare(`DELETE FROM rangle_guilds WHERE user_id = ?`).bind(user_id)
+                ];
+
+                for (const guild of guilds) {
+                    statements.push(
+                        env.CLOUD_DB.prepare(`INSERT INTO rangle_guilds (guild_id, user_id) VALUES (?, ?)`).bind(guild.id, user_id)
+                    );
+                }
+
+                await env.CLOUD_DB.batch(statements);
+
+                return new Response("Synced");
             }
         }
     }
