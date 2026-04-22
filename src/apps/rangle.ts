@@ -119,9 +119,9 @@ export default {
                 const { guild_id, date } = request.params;
 
                 // first check they still have a valid jwt grant
-                const auth_header = request.headers.get("Authorization");
-                if (!auth_header || !auth_header.startsWith("Bearer ")) {
-                    return new Response("Missing or invalid Authorization header", { status: 401 });
+                const auth_header = request.headers.get("X-Leaderboard-Grant");
+                if (!auth_header) {
+                    return new Response("Missing leaderboard grant", { status: 401 });
                 }
 
                 const token = auth_header.substring(7);
