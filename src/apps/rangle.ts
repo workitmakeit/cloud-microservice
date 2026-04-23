@@ -119,19 +119,18 @@ export default {
                 const { guild_id, date } = request.params;
 
                 // first check they still have a valid jwt grant
-                const auth_header = request.headers.get("X-Leaderboard-Grant");
-                if (!auth_header) {
+                const grant = request.headers.get("X-Leaderboard-Grant");
+                if (!grant) {
                     return new Response("Missing leaderboard grant", { status: 401 });
                 }
 
-                const token = auth_header.substring(7);
                 try {
-                    const {payload} = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET));
+                    const {payload} = await jwtVerify(grant, new TextEncoder().encode(env.JWT_SECRET));
                     if (payload.sub !== request.auth.sub) {
-                        return new Response("Token does not belong to the authenticated user", { status: 401 });
+                        return new Response("Grant does not belong to the authenticated user", { status: 401 });
                     }
                 } catch (e) {
-                    return new Response("Invalid or expired token", { status: 401 });
+                    return new Response("Invalid or expired grant", { status: 401 });
                 }
 
                 // next check the user belongs to the guild
