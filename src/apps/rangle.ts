@@ -232,13 +232,25 @@ export default {
             "/guilds/:guild_id/checkin": async (request, env) => {
                 const { guild_id } = request.params;
 
+                const statements = [];
+
                 // check in to the guild to place them on the leaderboard, however, don't mark them as verified until confirmed by sync_guilds
                 // if it is already inserted, then do nothing, as they either already checked in, or its already verified (which shouldn't be undone!)
-                await env.CLOUD_DB.prepare(
+                statements.push(
+                    env.CLOUD_DB.prepare(
                     `INSERT INTO rangle_guilds (guild_id, user_id, verified)
                      VALUES (?, ?, 0)
                      ON CONFLICT (guild_id, user_id) DO NOTHING`
-                ).bind(guild_id, request.auth.sub).run();
+                    ).bind(guild_id, request.auth.sub)
+                );
+
+                // regardless, upsert their user details
+                statements.push(
+                    env.CLOUD_DB.prepare(
+                        `INSERT INTO rangle_user_info (user_id, username, avatar_url) VALUES (?, ?, ?)
+                         ON CONFLICT(user_id) DO UPDATE SET username = excluded.username, avatar_url = excluded.avatar_url`
+                    ).bind(request.auth.sub, request.auth.username, request.auth.avatar)
+                );
 
                 return new Response(null, { status: 204 });
             }

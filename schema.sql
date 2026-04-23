@@ -31,3 +31,9 @@ CREATE TABLE rangle_guilds (
 
     PRIMARY KEY (guild_id, user_id)
 );
+
+CREATE TABLE rangle_user_info (
+    user_id TEXT PRIMARY KEY,
+    username TEXT,
+    avatar_url TEXT
+);
