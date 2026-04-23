@@ -134,9 +134,9 @@ export default {
                     return new Response("Invalid or expired token", { status: 401 });
                 }
 
-                // next check the user verifiably belongs to the guild
+                // next check the user belongs to the guild
                 const membership = await env.CLOUD_DB.prepare(
-                    `SELECT 1 FROM rangle_guilds WHERE guild_id = ? AND user_id = ? AND verified = 1`
+                    `SELECT 1 FROM rangle_guilds WHERE guild_id = ? AND user_id = ?`
                 ).bind(guild_id, request.auth.sub).first();
 
                 if (!membership) {
@@ -157,8 +157,6 @@ export default {
         },
         post: {
             "/sync_guilds": async (request, env) => {
-                // TODO: store user details
-
                 const { code } = await request.json() as { code: string };
                 const user_id = request.auth.sub;
 
@@ -205,7 +203,7 @@ export default {
                 const mini_guilds: Record<string, MiniGuild> = {};
                 for (const guild of guilds) {
                     statements.push(
-                        env.CLOUD_DB.prepare(`INSERT INTO rangle_guilds (guild_id, user_id, verified) VALUES (?, ?, 1)`).bind(guild.id, user_id)
+                        env.CLOUD_DB.prepare(`INSERT INTO rangle_guilds (guild_id, user_id) VALUES (?, ?)`).bind(guild.id, user_id)
                     );
 
                     mini_guilds[guild.id] = {
@@ -229,30 +227,14 @@ export default {
             }
         },
         put: {
-            "/guilds/:guild_id/checkin": async (request, env) => {
-                const { guild_id } = request.params;
-
-                const statements = [];
-
-                // check in to the guild to place them on the leaderboard, however, don't mark them as verified until confirmed by sync_guilds
-                // if it is already inserted, then do nothing, as they either already checked in, or its already verified (which shouldn't be undone!)
-                statements.push(
-                    env.CLOUD_DB.prepare(
-                    `INSERT INTO rangle_guilds (guild_id, user_id, verified)
-                     VALUES (?, ?, 0)
-                     ON CONFLICT (guild_id, user_id) DO NOTHING`
-                    ).bind(guild_id, request.auth.sub)
-                );
-
-                // regardless, upsert their user details
-                statements.push(
-                    env.CLOUD_DB.prepare(
-                        `INSERT INTO rangle_user_info (user_id, username, avatar_url) VALUES (?, ?, ?)
-                         ON CONFLICT(user_id) DO UPDATE SET username = excluded.username, avatar_url = excluded.avatar_url`
-                    ).bind(request.auth.sub, request.auth.username, request.auth.avatar)
-                );
-
-                await env.CLOUD_DB.batch(statements);
+            "/checkin": async (request, env) => {
+                // upsert their user details
+                await env.CLOUD_DB.prepare(
+                    `INSERT INTO rangle_user_info (user_id, username, avatar_url) VALUES (?, ?, ?)
+                     ON CONFLICT(user_id) DO UPDATE SET username = excluded.username, avatar_url = excluded.avatar_url`
+                )
+                    .bind(request.auth.sub, request.auth.username, request.auth.avatar)
+                    .run();
 
                 return new Response(null, { status: 204 });
             }
