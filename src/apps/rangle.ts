@@ -252,6 +252,8 @@ export default {
                     ).bind(request.auth.sub, request.auth.username, request.auth.avatar)
                 );
 
+                await env.CLOUD_DB.batch(statements);
+
                 return new Response(null, { status: 204 });
             }
         }
