@@ -112,6 +112,7 @@ export default {
             await env.CLOUD_DB.prepare(`DELETE FROM rangle_leaderboard WHERE user_id = ?`).bind(user_id).run();
             await env.CLOUD_DB.prepare(`DELETE FROM rangle_updated WHERE user_id = ?`).bind(user_id).run();
             await env.CLOUD_DB.prepare(`DELETE FROM rangle_guilds WHERE user_id = ?`).bind(user_id).run();
+            await env.CLOUD_DB.prepare(`DELETE FROM rangle_user_info WHERE user_id = ?`).bind(user_id).run();
         }
     },
     routes: {
@@ -166,34 +167,17 @@ export default {
         },
         post: {
             "/sync_guilds": async (request, env) => {
-                const { code } = await request.json() as { code: string };
+                const { discord_access_token } = await request.json() as { discord_access_token?: string };
                 const user_id = request.auth.sub;
 
-                // exchange for a new access token
-                const token_response = await fetch("https://discord.com/api/oauth2/token", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    },
-                    body: new URLSearchParams({
-                        client_id: env.RANGLE_CLIENT_ID,
-                        client_secret: env.RANGLE_CLIENT_SECRET,
-                        code,
-                        grant_type: "authorization_code",
-                    })
-                });
-
-                if (!token_response.ok) {
-                    console.error("Failed to exchange code for token:", await token_response.text());
-                    return new Response("Failed to exchange code for token", { status: 500 });
+                if (!discord_access_token) {
+                    return new Response("Missing Discord access token", { status: 400 });
                 }
-
-                const { access_token } = await token_response.json() as { access_token: string };
 
                 // use the access token to get the user's guilds
                 const guilds_response = await fetch("https://discord.com/api/users/@me/guilds", {
                     headers: {
-                        Authorization: `Bearer ${access_token}`
+                        Authorization: `Bearer ${discord_access_token}`
                     }
                 });
 
