@@ -162,7 +162,7 @@ export default {
                      `
                 ).bind(guild_id, date).all();
 
-                return new Response(JSON.stringify(leaderboard), { headers: { "Content-Type": "application/json" } });
+                return new Response(JSON.stringify(leaderboard.results), { headers: { "Content-Type": "application/json" } });
             }
         },
         post: {
