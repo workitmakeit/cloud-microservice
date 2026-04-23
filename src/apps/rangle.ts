@@ -144,11 +144,20 @@ export default {
 
                 // use a join to collect all users in the guild with scores on that day in order (where least attempts and most bonus correct is best)
                 const leaderboard = await env.CLOUD_DB.prepare(
-                    `SELECT rangle_leaderboard.user_id, n_attempts, hardcore, n_correct_bonus
-                     FROM rangle_leaderboard
-                     JOIN rangle_guilds ON rangle_leaderboard.user_id = rangle_guilds.user_id
-                     WHERE rangle_guilds.guild_id = ? AND date = ?
-                     ORDER BY n_attempts ASC, n_correct_bonus DESC`
+                    `
+                    SELECT
+                        l.user_id,
+                        l.n_attempts,
+                        l.hardcore,
+                        l.n_correct_bonus,
+                        u.username,
+                        u.avatar_url
+                    FROM rangle_leaderboard l
+                             JOIN rangle_guilds g ON l.user_id = g.user_id
+                             JOIN rangle_user_info u ON l.user_id = u.user_id
+                    WHERE g.guild_id = ? AND l.date = ?
+                    ORDER BY l.n_attempts ASC, l.n_correct_bonus DESC
+                     `
                 ).bind(guild_id, date).all();
 
                 return new Response(JSON.stringify(leaderboard), { headers: { "Content-Type": "application/json" } });
