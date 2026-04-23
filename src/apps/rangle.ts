@@ -64,12 +64,13 @@ export default {
                         continue;
                     }
 
-                    const finished = entry.attempts.length > 5 || entry.attempts[entry.attempts.length - 1].every(x => x);
+                    const finished_correctly = entry.attempts[entry.attempts.length - 1].every(x => x);
+                    const finished = finished_correctly || entry.attempts.length === 5;
                     if (!finished) {
                         continue;
                     }
 
-                    const n_attempts = entry.attempts.length;
+                    const n_attempts = finished_correctly ? entry.attempts.length : 6;
                     const hardcore = entry.hardcore || false;
                     const n_correct_bonus = entry.bonus_results ? Object.values(entry.bonus_results).filter(x => x).length : 0;
 
