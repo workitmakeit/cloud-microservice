@@ -76,7 +76,7 @@ export const authenticate = async (request: IRequest, env: Env): Promise<AuthRes
 
     // fall back to default endowments if not defined for the user
     // note that this isnt a union, its an override. you can disendow a user by giving them less than the default
-    const endowments_str = await env.CLOUD_ENDOWMENTS.get(payload.sub) || await env.CLOUD_ENDOWMENTS.get("DEFAULT");
+    const endowments_str = await env.CLOUD_ENDOWMENTS.get(payload.sub, {cacheTtl: 120}) || await env.CLOUD_ENDOWMENTS.get("DEFAULT", {cacheTtl: 300});
 
     if (!endowments_str) {
         return { success: false, error: "NO_ENDOWMENTS" };
