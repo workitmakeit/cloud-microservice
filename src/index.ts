@@ -8,10 +8,38 @@ import { delete_me } from "./delete_me";
 import { get_app, get_public_app_info, register_app_routing } from "./app_reg";
 import {register_apps} from "./apps";
 
+const EXACT_ORIGINS = ["rangle.today"];
+const WILDCARD_ORIGINS = ["ollieg.codes", "discordsays.com"];
+
 const { preflight, corsify } = cors({
-    origin: "*", // TODO: restrict to allowed origins
-    allowMethods: ["GET", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Authorization", "Content-Type"]
+    origin: (origin) => {
+        if (!origin || origin === "null") {
+            return;
+        }
+
+        if (origin.startsWith("http://localhost")) {
+            return origin;
+        }
+
+        const url = new URL(origin);
+        if (url.protocol !== "https:") {
+            return;
+        }
+
+        if (EXACT_ORIGINS.includes(url.hostname)) {
+            return origin;
+        }
+
+        for (const wildcard of WILDCARD_ORIGINS) {
+            if (url.hostname === wildcard || url.hostname.endsWith("." + wildcard)) {
+                return origin;
+            }
+        }
+
+        return;
+    },
+    allowMethods: ["GET", "PUT", "DELETE", "OPTIONS", "POST"],
+    allowHeaders: ["Authorization", "Content-Type", "X-Leaderboard-Grant"]
 });
 
 const make_auth_middleware = (env: Env) => async (request: IRequest) => {
