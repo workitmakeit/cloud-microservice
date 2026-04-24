@@ -66,5 +66,31 @@
 			"id": "3ea6627d406a4667a707ad702dca7400",
             "remote": true
         }
+    ],
+    "ratelimits": [
+        {
+            "name": "RATE_LIMIT_PREAUTH",
+            "namespace_id": "314314670",
+            "simple": {
+                "limit": 600,
+                "period": 60
+            }
+        },
+        {
+            "name": "RATE_LIMIT_STORAGE_READ",
+            "namespace_id": "314314671",
+            "simple": {
+                "limit": 100,
+                "period": 60
+            }
+        },
+        {
+            "name": "RATE_LIMIT_STORAGE_WRITE",
+            "namespace_id": "314314672",
+            "simple": {
+                "limit": 30,
+                "period": 60
+            }
+        }
     ]
 }

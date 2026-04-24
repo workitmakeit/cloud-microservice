@@ -2,6 +2,11 @@ import { RequestWithAuth } from "./auth";
 import { list_apps } from "./app_reg";
 
 export const delete_me = async (request: RequestWithAuth, env: Env) => {
+    const {success} = await env.RATE_LIMIT_STORAGE_WRITE.limit({key: request.auth.sub});
+    if (!success) {
+        return new Response("Too many requests", { status: 429 });
+    }
+
     // run all delete_me hooks
     for (const app of list_apps()) {
         const delete_me_hook = app.hooks?.delete_me;

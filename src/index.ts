@@ -47,6 +47,11 @@ const { preflight, corsify } = cors({
 });
 
 const make_auth_middleware = (env: Env) => async (request: IRequest) => {
+    const {success} = await env.RATE_LIMIT_PREAUTH.limit({key: request.headers.get("CF-Connecting-IP") || "unknown"});
+    if (!success) {
+        return new Response("Too many requests", { status: 429 });
+    }
+
     const auth_result = await authenticate(request, env);
     if (!auth_result.success) {
         if (auth_result.error === "NO_TOKEN") {

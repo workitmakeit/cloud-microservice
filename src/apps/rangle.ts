@@ -118,6 +118,11 @@ export default {
     routes: {
         get: {
             "/guilds/:guild_id/leaderboard/:date": async (request, env) => {
+                const {success} = await env.RATE_LIMIT_STORAGE_READ.limit({key: request.auth.sub});
+                if (!success) {
+                    return new Response("Too many requests", { status: 429 });
+                }
+
                 const { guild_id, date } = request.params;
 
                 // first check they still have a valid jwt grant
@@ -167,6 +172,11 @@ export default {
         },
         post: {
             "/sync_guilds": async (request, env) => {
+                const {success} = await env.RATE_LIMIT_STORAGE_WRITE.limit({key: request.auth.sub});
+                if (!success) {
+                    return new Response("Too many requests", { status: 429 });
+                }
+
                 const { discord_access_token } = await request.json() as { discord_access_token?: string };
                 const user_id = request.auth.sub;
 
@@ -221,6 +231,11 @@ export default {
         },
         put: {
             "/checkin": async (request, env) => {
+                const {success} = await env.RATE_LIMIT_STORAGE_WRITE.limit({key: request.auth.sub});
+                if (!success) {
+                    return new Response("Too many requests", { status: 429 });
+                }
+
                 // upsert their user details
                 await env.CLOUD_DB.prepare(
                     `INSERT INTO rangle_user_info (user_id, username, avatar_url) VALUES (?, ?, ?)

@@ -4,6 +4,11 @@ import { get_app } from "./app_reg";
 // TODO: restrict to origins associated with the app ID
 
 export const GET = async (request: RequestWithAuth, env: Env) => {
+    const {success} = await env.RATE_LIMIT_STORAGE_READ.limit({key: request.auth.sub});
+    if (!success) {
+        return new Response("Too many requests", { status: 429 });
+    }
+
     const {app_id, key} = request.params;
 
     if (!app_id) {
@@ -51,6 +56,11 @@ export const GET = async (request: RequestWithAuth, env: Env) => {
 }
 
 export const PUT = async (request: RequestWithAuth, env: Env) => {
+    const {success} = await env.RATE_LIMIT_STORAGE_WRITE.limit({key: request.auth.sub});
+    if (!success) {
+        return new Response("Too many requests", { status: 429 });
+    }
+
     const {app_id, key} = request.params;
     const value = await request.text();
 
@@ -108,6 +118,11 @@ export const PUT = async (request: RequestWithAuth, env: Env) => {
 }
 
 export const DELETE = async (request: RequestWithAuth, env: Env) => {
+    const {success} = await env.RATE_LIMIT_STORAGE_WRITE.limit({key: request.auth.sub});
+    if (!success) {
+        return new Response("Too many requests", { status: 429 });
+    }
+
     const {app_id, key} = request.params;
 
     if (!app_id) {
