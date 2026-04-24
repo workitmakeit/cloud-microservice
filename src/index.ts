@@ -21,22 +21,26 @@ const { preflight, corsify } = cors({
             return origin;
         }
 
-        const url = new URL(origin);
-        if (url.protocol !== "https:") {
-            return;
-        }
+        try {
+            const url = new URL(origin);
+            if (url.protocol !== "https:") {
+                return;
+            }
 
-        if (EXACT_ORIGINS.includes(url.hostname)) {
-            return origin;
-        }
-
-        for (const wildcard of WILDCARD_ORIGINS) {
-            if (url.hostname === wildcard || url.hostname.endsWith("." + wildcard)) {
+            if (EXACT_ORIGINS.includes(url.hostname)) {
                 return origin;
             }
-        }
 
-        return;
+            for (const wildcard of WILDCARD_ORIGINS) {
+                if (url.hostname === wildcard || url.hostname.endsWith("." + wildcard)) {
+                    return origin;
+                }
+            }
+
+            return;
+        } catch (e) {
+            return;
+        }
     },
     allowMethods: ["GET", "PUT", "DELETE", "OPTIONS", "POST"],
     allowHeaders: ["Authorization", "Content-Type", "X-Leaderboard-Grant"]
